@@ -107,6 +107,31 @@
             color: #666;
         }
 
+    /* botão editar */
+    .btn-editar {
+      display: block;
+      margin-top: 12px;
+      padding: 8px 0;
+      background: #6f42c1;
+      color: white;
+      text-align: center;
+      border-radius: 6px;
+      text-decoration: none;
+      font-weight: bold;
+      font-size: 14px;
+      transition: background 0.3s ease;
+    }
+    .btn-editar:hover {
+      background: #5a32a3;
+    }
+    .vazio {
+      background: white;
+      padding: 30px;
+      border-radius: 12px;
+      text-align: center;
+      color: #666;
+    }
+
     </style>
 
 </head>
@@ -152,6 +177,9 @@
             <p class="estoque">
                 Estoque: {{ produto.quantidade }}
             </p>
+
+            <!--botao de edição para cada produto-->
+            <a class="btn-editar" href="/produto/{{ produto.id }}/editar">Editar Produto</a>
 
         </div>
 
