@@ -61,6 +61,27 @@ def api_cadastro():
     
     return jsonify({'mensagem': 'Funcionário cadastrado com sucesso!'}), 201
 
+ # Endpoint de API para os testes automatizados
+@app.route('/api/produto/<int:id>', methods=['PUT'])
+def api_editar_produto(id):
+    produto = Produto.query.get_or_404(id)
+    data = request.get_json() or {}
+ 
+    nome = data.get('nome')
+    preco = data.get('preco')
+    quantidade = data.get('quantidade')
+ 
+    if not nome or preco is None or quantidade is None:
+        return jsonify({'erro': 'Dados incompletos'}), 400
+ 
+    produto.nome = nome
+    produto.preco = float(preco)
+    produto.quantidade = int(quantidade)
+    db.session.commit()
+ 
+    return jsonify({'mensagem': 'Produto atualizado com sucesso!'}), 200
+ 
+
 # rota para cadastrar produtos
 # o que a rota faz: abre a página /produto - recebe dados do forumulario - valida campos - salva no banco e mostra mensagem de sucesso
 @app.route('/produto', methods=['GET', 'POST'])
@@ -102,3 +123,30 @@ def home():
 
 if __name__ == '__main__':
     app.run(debug=True)
+
+# Rota para editar um produto existente
+# GET: abre o formulário pré-preenchido
+# POST: salva as alterações no banco
+@app.route('/produto/<int:id>/editar', methods=['GET', 'POST'])
+def editar_produto(id):
+    produto = Produto.query.get_or_404(id)
+ 
+    if request.method == 'POST':
+        nome = request.form.get('nome')
+        preco = request.form.get('preco')
+        quantidade = request.form.get('quantidade')
+ 
+        if not nome or not preco or not quantidade:
+            flash('Preencha todos os campos!', 'erro')
+            return redirect(url_for('editar_produto', id=id))
+ 
+        produto.nome = nome
+        produto.preco = float(preco)
+        produto.quantidade = int(quantidade)
+        db.session.commit()
+ 
+        flash('Produto atualizado com sucesso!', 'sucesso')
+        return redirect(url_for('home'))
+ 
+    return render_template('editar_produto.html', produto=produto)
+ 
