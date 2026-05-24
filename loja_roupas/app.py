@@ -2,7 +2,7 @@
 
 from flask import Flask, render_template, request, jsonify, redirect, url_for, flash
 from database import db
-from models import Funcionario
+from models import Funcionario, Produto
 
 app = Flask(__name__)
 app.config['SQLALCHEMY_DATABASE_URI'] = 'sqlite:///loja.db'
@@ -60,6 +60,45 @@ def api_cadastro():
     db.session.commit()
     
     return jsonify({'mensagem': 'Funcionário cadastrado com sucesso!'}), 201
+
+# rota para cadastrar produtos
+# o que a rota faz: abre a página /produto - recebe dados do forumulario - valida campos - salva no banco e mostra mensagem de sucesso
+@app.route('/produto', methods=['GET', 'POST'])
+def cadastro_produto():
+
+    if request.method == 'POST':
+
+        nome = request.form.get('nome')
+        preco = request.form.get('preco')
+        quantidade = request.form.get('quantidade')
+
+        if not nome or not preco or not quantidade:
+            flash('Preencha todos os campos!', 'erro')
+            return redirect(url_for('cadastro_produto'))
+
+        novo_produto = Produto(
+            nome=nome,
+            preco=float(preco),
+            quantidade=int(quantidade)
+        )
+
+        db.session.add(novo_produto)
+        db.session.commit()
+
+        flash('Produto cadastrado com sucesso!', 'sucesso')
+        return redirect(url_for('cadastro_produto'))
+
+    return render_template('produto.html')
+# será nossa home para mostrar o painel administrativo do lojista 
+@app.route('/')
+def home():
+
+    produtos = Produto.query.all()
+
+    return render_template(
+        'home.html',
+        produtos=produtos
+    )
 
 if __name__ == '__main__':
     app.run(debug=True)

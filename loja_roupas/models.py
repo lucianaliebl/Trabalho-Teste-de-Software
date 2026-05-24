@@ -13,3 +13,10 @@ class Funcionario(db.Model):
 
     def verificar_senha(self, senha):
         return check_password_hash(self.senha_hash, senha)
+
+# define a estrutura da tabela de produtos do sistema com os seguintes atributos:
+class Produto(db.Model):
+    id = db.Column(db.Integer, primary_key=True)
+    nome = db.Column(db.String(100), nullable=False)
+    preco = db.Column(db.Float, nullable=False)
+    quantidade = db.Column(db.Integer, nullable=False)
