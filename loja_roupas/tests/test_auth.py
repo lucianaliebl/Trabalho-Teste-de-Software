@@ -1,6 +1,8 @@
 import pytest
 from app import app, db
 from models import Funcionario, Produto
+import threading
+from playwright.sync_api import sync_playwright
 
 
 @pytest.fixture
@@ -126,3 +128,102 @@ def test_cadastro_produto_campos_vazios(client):
         produtos = Produto.query.all()
 
         assert len(produtos) == 0
+
+
+# testes para editar produto
+
+@pytest.fixture
+def client():
+    app.config['TESTING'] = True
+    app.config['SQLALCHEMY_DATABASE_URI'] = 'sqlite:///:memory:'
+    with app.test_client() as client:
+        with app.app_context():
+            db.create_all()
+            yield client
+        with app.app_context():
+            db.drop_all()
+
+
+# ── helper: cria um produto diretamente no banco ──────────────────────────────
+def criar_produto(nome="Camiseta Nike", preco=99.90, quantidade=10):
+    """Insere um produto no banco e retorna o objeto criado."""
+    produto = Produto(nome=nome, preco=preco, quantidade=quantidade)
+    db.session.add(produto)
+    db.session.commit()
+    return produto
+
+
+# ── CT-05: Edição de produto com sucesso (interface web) ─────────────────────
+def test_editar_produto_sucesso(client):
+    """CT-05: Editar produto com dados válidos deve atualizar o banco."""
+    with app.app_context():
+        produto = criar_produto()
+        produto_id = produto.id
+
+    dados = {
+        "nome": "Camiseta Adidas",
+        "preco": "149.90",
+        "quantidade": "5"
+    }
+    resposta = client.post(
+        f'/produto/{produto_id}/editar',
+        data=dados,
+        follow_redirects=True
+    )
+
+    assert resposta.status_code == 200
+
+    with app.app_context():
+        produto_atualizado = Produto.query.get(produto_id)
+        assert produto_atualizado.nome == "Camiseta Adidas"
+        assert produto_atualizado.preco == 149.90
+        assert produto_atualizado.quantidade == 5
+
+# TESTE E2E
+@pytest.fixture(scope="module")
+def servidor():
+    """Sobe o Flask em uma thread separada para o Playwright acessar."""
+    app.config['TESTING'] = True
+    app.config['SQLALCHEMY_DATABASE_URI'] = 'sqlite:///:memory:'
+
+    with app.app_context():
+        db.create_all()
+        # cria um produto para editar
+        produto = Produto(nome="Camiseta Nike", preco=99.90, quantidade=10)
+        db.session.add(produto)
+        db.session.commit()
+
+    thread = threading.Thread(target=lambda: app.run(port=5001, use_reloader=False))
+    thread.daemon = True
+    thread.start()
+
+    yield
+
+    with app.app_context():
+        db.drop_all()
+
+# ── CT-E2E-01: Edição de produto via navegador ───────────────────────────────
+def test_E2E_editar_produto_navegador(servidor):
+    """CT-E2E-01: Usuário edita produto pelo navegador e vê os dados atualizados na home."""
+    with sync_playwright() as p:
+        navegador = p.chromium.launch(headless=True)
+        pagina = navegador.new_page()
+
+        # 1. acessa a página de edição do produto de ID 1
+        pagina.goto("http://localhost:5001/produto/1/editar")
+
+        # 2. limpa os campos e preenche com novos valores
+        pagina.fill("#nome", "Camiseta Adidas")
+        pagina.fill("#preco", "149.90")
+        pagina.fill("#quantidade", "5")
+
+        # 3. clica no botão de salvar
+        pagina.click("button[type='submit']")
+
+        # 4. verifica que foi redirecionado para a home
+        assert pagina.url == "http://localhost:5001/"
+
+        # 5. verifica que o novo nome aparece na página
+        assert "Camiseta Adidas" in pagina.content()
+
+        navegador.close()
