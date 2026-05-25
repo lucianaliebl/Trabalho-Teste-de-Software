@@ -126,3 +126,74 @@ def test_cadastro_produto_campos_vazios(client):
         produtos = Produto.query.all()
 
         assert len(produtos) == 0
+
+
+# testes para editar produto
+# ── helper: cria um produto diretamente no banco ──────────────────────────────
+def criar_produto(nome="Camiseta Nike", preco=99.90, quantidade=10):
+    """Insere um produto no banco e retorna o objeto criado."""
+    produto = Produto(nome=nome, preco=preco, quantidade=quantidade)
+    db.session.add(produto)
+    db.session.commit()
+    return produto
+
+
+# ── Edição do produto com sucesso (interface web) ─────────────────────
+def test_editar_produto_sucesso(client):
+    """Editar produto com dados válidos deve atualizar o banco."""
+    with app.app_context():
+        produto = criar_produto()
+        produto_id = produto.id
+
+    dados = {
+        "nome": "Camiseta Adidas",
+        "preco": "149.90",
+        "quantidade": "5"
+    }
+    resposta = client.post(
+        f'/produto/{produto_id}/editar',
+        data=dados,
+        follow_redirects=True
+    )
+
+    assert resposta.status_code == 200
+
+    with app.app_context():
+        produto_atualizado = Produto.query.get(produto_id)
+        assert produto_atualizado.nome == "Camiseta Adidas"
+        assert produto_atualizado.preco == 149.90
+        assert produto_atualizado.quantidade == 5
+
+
+# ── edição com campos vazios deve exibir erro ─────────────────────────
+def test_editar_produto_campos_vazios(client):
+    """Campos vazios no formulário de edição devem exibir mensagem de erro."""
+    with app.app_context():
+        produto = criar_produto()
+        produto_id = produto.id
+
+    dados = {"nome": "", "preco": "", "quantidade": ""}
+    resposta = client.post(
+        f'/produto/{produto_id}/editar',
+        data=dados,
+        follow_redirects=True
+    )
+
+    assert resposta.status_code == 200
+    assert b'Preencha todos os campos!' in resposta.data
+
+    # Garante que os dados originais não foram alterados
+    with app.app_context():
+        produto_inalterado = Produto.query.get(produto_id)
+        assert produto_inalterado.nome == "Camiseta Nike"
+        assert produto_inalterado.preco == 99.90
+        assert produto_inalterado.quantidade == 10
+
+
+# ── edição de produto inexistente deve retornar 404 ───────────────────
+def test_editar_produto_nao_encontrado(client):
+    """Tentar editar um produto com ID inexistente deve retornar 404."""
+    resposta = client.get('/produto/9999/editar')
+    assert resposta.status_code == 404
+
+
