@@ -107,10 +107,29 @@
             color: #666;
         }
 
+        .alert {
+            padding: 12px;
+            margin-bottom: 20px;
+            border-radius: 6px;
+            font-size: 14px;
+            text-align: center;
+        }
+
+        .sucesso {
+            background-color: #d4edda;
+            color: #155724;
+            border: 1px solid #c3e6cb;
+        }
+
+        .erro {
+            background-color: #f8d7da;
+            color: #721c24;
+            border: 1px solid #f5c6cb;
+        }
+
     /* botão editar */
     .btn-editar {
       display: block;
-      margin-top: 12px;
       padding: 8px 0;
       background: #6f42c1;
       color: white;
@@ -123,6 +142,74 @@
     }
     .btn-editar:hover {
       background: #5a32a3;
+    }
+    .acoes-produto {
+      display: grid;
+      grid-template-columns: 1fr 1fr;
+      gap: 10px;
+      margin-top: 12px;
+    }
+    .form-deletar {
+      margin: 0;
+    }
+    .btn-deletar {
+      width: 100%;
+      padding: 8px 0;
+      background: #dc3545;
+      color: white;
+      border: none;
+      border-radius: 6px;
+      cursor: pointer;
+      font-weight: bold;
+      font-size: 14px;
+      transition: background 0.3s ease;
+    }
+    .btn-deletar:hover {
+      background: #b02a37;
+    }
+    .modal {
+      position: fixed;
+      inset: 0;
+      background: rgba(0, 0, 0, 0.45);
+      display: none;
+      align-items: center;
+      justify-content: center;
+      padding: 20px;
+      z-index: 10;
+    }
+    .modal.ativo {
+      display: flex;
+    }
+    .modal-conteudo {
+      width: 100%;
+      max-width: 360px;
+      background: white;
+      padding: 24px;
+      border-radius: 8px;
+      box-shadow: 0px 8px 24px rgba(0,0,0,0.18);
+    }
+    .modal-conteudo h3 {
+      margin-bottom: 12px;
+      color: #333;
+    }
+    .modal-conteudo p {
+      color: #666;
+      line-height: 1.4;
+      margin-bottom: 20px;
+    }
+    .modal-acoes {
+      display: grid;
+      grid-template-columns: 1fr 1fr;
+      gap: 10px;
+    }
+    .btn-cancelar {
+      padding: 10px;
+      background: white;
+      color: #6f42c1;
+      border: 2px solid #6f42c1;
+      border-radius: 6px;
+      cursor: pointer;
+      font-weight: bold;
     }
     .vazio {
       background: white;
@@ -160,6 +247,14 @@
 
     </div>
 
+    {% with messages = get_flashed_messages(with_categories=true) %}
+      {% if messages %}
+        {% for category, message in messages %}
+          <div class="alert {{ category }}">{{ message }}</div>
+        {% endfor %}
+      {% endif %}
+    {% endwith %}
+
     {% if produtos %}
 
     <div class="cards">
@@ -178,9 +273,41 @@
                 Estoque: {{ produto.quantidade }}
             </p>
 
-            <!--botao de edição para cada produto-->
-            <a class="btn-editar" href="/produto/{{ produto.id }}/editar">Editar Produto</a>
+            <div class="acoes-produto">
+                <!--botao de edição para cada produto-->
+                <a class="btn-editar" href="/produto/{{ produto.id }}/editar">Editar</a>
 
+                <button class="btn-deletar"
+                        type="button"
+                        onclick="abrirModalDeletar('{{ produto.id }}')">
+                    Deletar
+                </button>
+            </div>
+
+        </div>
+
+        <div class="modal" id="modal-deletar-{{ produto.id }}">
+            <div class="modal-conteudo">
+                <h3>Apagar produto?</h3>
+
+                <p>
+                    Deseja apagar o produto {{ produto.nome }}? Essa ação não poderá ser desfeita.
+                </p>
+
+                <form class="form-deletar"
+                      method="POST"
+                      action="/produto/{{ produto.id }}/deletar">
+                    <div class="modal-acoes">
+                        <button class="btn-cancelar"
+                                type="button"
+                                onclick="fecharModalDeletar('{{ produto.id }}')">
+                            Cancelar
+                        </button>
+
+                        <button class="btn-deletar" type="submit">Apagar</button>
+                    </div>
+                </form>
+            </div>
         </div>
 
         {% endfor %}
@@ -202,6 +329,16 @@
     {% endif %}
 
 </div>
+
+<script>
+    function abrirModalDeletar(produtoId) {
+        document.getElementById('modal-deletar-' + produtoId).classList.add('ativo');
+    }
+
+    function fecharModalDeletar(produtoId) {
+        document.getElementById('modal-deletar-' + produtoId).classList.remove('ativo');
+    }
+</script>
 
 </body>
 </html>

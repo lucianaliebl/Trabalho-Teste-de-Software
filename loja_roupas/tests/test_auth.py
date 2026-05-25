@@ -179,6 +179,25 @@ def test_editar_produto_sucesso(client):
         assert produto_atualizado.preco == 149.90
         assert produto_atualizado.quantidade == 5
 
+
+def test_deletar_produto_sucesso(client):
+    """CT-06: Deletar produto deve remover o registro do banco."""
+    with app.app_context():
+        produto = criar_produto()
+        produto_id = produto.id
+
+    resposta = client.post(
+        f'/produto/{produto_id}/deletar',
+        follow_redirects=True
+    )
+
+    assert resposta.status_code == 200
+    assert b'Produto deletado com sucesso!' in resposta.data
+
+    with app.app_context():
+        produto_deletado = Produto.query.get(produto_id)
+        assert produto_deletado is None
+
 # TESTE E2E
 @pytest.fixture(scope="module")
 def servidor():

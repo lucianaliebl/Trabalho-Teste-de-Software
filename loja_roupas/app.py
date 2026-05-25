@@ -110,20 +110,6 @@ def cadastro_produto():
         return redirect(url_for('cadastro_produto'))
 
     return render_template('produto.html')
-# será nossa home para mostrar o painel administrativo do lojista 
-@app.route('/')
-def home():
-
-    produtos = Produto.query.all()
-
-    return render_template(
-        'home.html',
-        produtos=produtos
-    )
-
-if __name__ == '__main__':
-    app.run(debug=True)
-
 # Rota para editar um produto existente
 # GET: abre o formulário pré-preenchido
 # POST: salva as alterações no banco
@@ -149,4 +135,32 @@ def editar_produto(id):
         return redirect(url_for('home'))
  
     return render_template('editar_produto.html', produto=produto)
- 
+
+
+# Rota para deletar um produto existente
+# POST: remove o produto do banco e volta para a home
+@app.route('/produto/<int:id>/deletar', methods=['POST'])
+def deletar_produto(id):
+    produto = Produto.query.get_or_404(id)
+
+    db.session.delete(produto)
+    db.session.commit()
+
+    flash('Produto deletado com sucesso!', 'sucesso')
+    return redirect(url_for('home'))
+
+
+# será nossa home para mostrar o painel administrativo do lojista 
+@app.route('/')
+def home():
+
+    produtos = Produto.query.all()
+
+    return render_template(
+        'home.html',
+        produtos=produtos
+    )
+
+
+if __name__ == '__main__':
+    app.run(debug=True)
